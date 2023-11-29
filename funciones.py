@@ -226,28 +226,29 @@ def recommendation(model, trainset, testset):
   return
 
 
-def get_movie_id(movie_title, movies_metadata):
-    existing_titles = list(movies_metadata['title'].values)
-    closest_titles = difflib.get_close_matches(movie_title, existing_titles)
-    movie_id = movies_metadata[movies_metadata['title'] == closest_titles[0]]['id'].values[0]
-    return movie_id
+def recommender_surprise(data, movies, model, user_id, n=10):
+    # Cargar el conjunto de datos en el formato de Surprise
+    reader = Reader(rating_scale=(1, 5))
+    data = Dataset.load_from_df(data[['userId', 'movieId', 'rating']], reader)
+    trainset = data.build_full_trainset()
 
-def get_movie_info(movie_id, movies_metadata):
-    movie_info = movies_metadata[movies_metadata['id'] == movie_id][['id', 'crew',
-                                                    'director', 'title', 'genres']]
-    return movie_info.to_dict(orient='records')
+    # Obtener la lista de todos los ítems (películas) del conjunto de entrenamiento
+    items = trainset.all_items()
+    item_map = trainset.to_raw_iid
 
-def predict_review(user_id, movie_title, model, movies_metadata):
-    movie_id = get_movie_id(movie_title, movies_metadata)
-    review_prediction = model.predict(uid=user_id, iid=movie_id)
-    return review_prediction.est
+    # Obtener la lista de ítems (películas) que el usuario ya ha calificado
+    user_rated_items = set([j for (j, _) in trainset.ur[trainset.to_inner_uid(user_id)]])
 
-def generate_recommendation(user_id, model, movies_metadata, thresh=4):
-    movie_titles = list(movies_metadata['title'].values)
-    random.shuffle(movie_titles)
+    # Predecir calificaciones para todos los ítems que el usuario no ha calificado aún
+    predictions = [model.predict(user_id, item_map(i)) for i in items if i not in user_rated_items]
 
-    for movie_title in movie_titles:
-        rating = predict_review(user_id, movie_title, model, movies_metadata)
-        if rating >= thresh:
-            movie_id = get_movie_id(movie_title, movies_metadata)
-            return movie_title, get_movie_info(movie_id, movies_metadata)
+    # Ordenar las predicciones basadas en la calificación estimada
+    predictions.sort(key=lambda x: x.est, reverse=True)
+
+    # Obtener las top 'n' recomendaciones de películas
+    top_n_recommendations = predictions[:n]
+
+    # Mapear los IDs de las películas a sus títulos
+    top_movies = pd.DataFrame([(pred.iid, movies[movies['id'] == pred.iid]['title'].iloc[0], pred.est) for pred in top_n_recommendations], columns=['itemID', 'title', 'estimatedRating'])
+
+    return top_movies
