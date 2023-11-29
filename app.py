@@ -1,5 +1,5 @@
 from flask import Flask, request, jsonify
-from funciones import final_movie_recomendation, final_user_recomendation, final_genre_recomendation
+from funciones import *
 import os
 import pandas as pd
 
