@@ -43,11 +43,15 @@ function sendMessage() {
             .then(data => {
                 removeLoadingMessage();
                 displayMessage(data.result, 'assistant', true);
+                displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
+                isFirstMessage = true;
             })
             .catch(error => {
                 console.error('Error:', error);
                 removeLoadingMessage();
                 displayMessage('Error fetching recommendation', 'assistant');
+                displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
+                isFirstMessage = true;
             });
             genero = false; // Reiniciar la bandera genero después de hacer la llamada a la API
         } else {
@@ -73,11 +77,15 @@ function sendMessage() {
     .then(data => {
         removeLoadingMessage();
         displayMessage(data.result, 'assistant', true);
+        displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
+        isFirstMessage = true;
     })
     .catch(error => {
         console.error('Error:', error);
         removeLoadingMessage();
         displayMessage('Error fetching recommendation', 'assistant');
+        displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
+        isFirstMessage = true;
     });
 }
 
@@ -92,7 +100,7 @@ function displayMessage(message, sender, isRecommendation = false) {
     messageElement.classList.add('message', sender);
 
     if (isRecommendation) {
-        messageElement.innerText = "Te recomiendo la siguiente peli: " + message;
+        messageElement.innerText = "Te recomiendo la siguiente pelis: " + message;
     } else {
         messageElement.innerText = message;
     }
