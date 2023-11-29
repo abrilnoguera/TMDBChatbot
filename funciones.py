@@ -8,6 +8,7 @@ import math
 from tabulate import tabulate
 import difflib
 import random
+import warnings
 
 def extract_name(s):
     if isinstance(s, str):
@@ -34,6 +35,10 @@ def get_director(column):
 
     return director
 
+def create_soup(x):
+    return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
+
+
 def recommender(df, similarity_matrix, movie, n=30):
     # Encuentra el índice de la película proporcionada en el DataFrame.
     idx = df.loc[df['title'] == movie, :].index[0]
@@ -44,6 +49,9 @@ def recommender(df, similarity_matrix, movie, n=30):
     # Ordena los puntajes de similitud en orden descendente.
     similarity_score = sorted(similarity_score, key=lambda x: x[1], reverse=True)
 
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(similarity_score))
+
     # Selecciona los puntajes de las 'n' películas más similares, excluyendo la primera que es la propia película introducida.
     similarity_score = similarity_score[1:n + 1]
 
@@ -53,15 +61,133 @@ def recommender(df, similarity_matrix, movie, n=30):
 
     # Crea un DataFrame con títulos de películas y sus puntajes de similitud.
     pd.set_option('display.float_format', '{:.2f}'.format)
-    movie_scores = pd.DataFrame({
+    recomendation = pd.DataFrame({
         'title': df['title'].iloc[movie_indices],
         'similarity_score': scores
     })
 
-    return movie_scores
+    return recomendation
 
-def create_soup(x):
-    return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
+def recommender_movies(ratings, df, similarity_matrix, user_id, n=30):
+
+    movies = ratings[ratings['userId'] == user_id].sort_values('rating', ascending=False)
+    a = min(len(movies), 3)
+    movies = movies['movieId'].head(a)
+    if a == 0:
+        return pd.DataFrame()
+    recomendation = pd.DataFrame()
+    for movie in movies:
+        title = df[df['id']==movie]['title'].values[0]
+        # Suprime solo los FutureWarnings específicos de Pandas
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            recomendation = pd.concat([recomendation, recommender(df, similarity_matrix, title, n*2)])
+        recomendation.drop_duplicates(subset='title', keep='first', inplace=True)
+
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(recomendation))
+
+    recomendation = recomendation.head(n)
+    return recomendation
+
+def recommender_genre(df, genre, n=30):
+    # Filtra películas por género
+    mask = df.genres.apply(lambda x: genre in x)
+    filtered_movie = df[mask]
+
+    # Ordena las películas filtradas por popularidad
+    filtered_movie = filtered_movie.sort_values(by='popularity', ascending=False)
+
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(filtered_movie))
+
+    # Selecciona los 'n' mejores movieIds
+    top_movie_ids = filtered_movie['movieId'].head(n).values.tolist()
+
+    # Crea un DataFrame con títulos e IDs
+    recomendation = pd.DataFrame({
+        'title': [df[df['movieId'] == movie_id]['title'].values[0] for movie_id in top_movie_ids],
+        'id': top_movie_ids
+    })
+
+    return recomendation
+
+def InfoUser(movies_with_genre):
+    unique_genre = movies_with_genre['genres'].explode().unique()
+
+    # Make a dict assigning an index to a genre
+    genre_dict = {k: v for v, k in enumerate(unique_genre)}
+
+    idx_to_genre = {v: k for k, v in genre_dict.items()}
+    user_ids = movies_with_genre['userId'].unique()
+
+    user_df = pd.DataFrame(columns=['userId', 'user_vector', 'avg_rating', 'num_movies_rated'])
+
+    for user_id in user_ids:
+        user_rating_df = movies_with_genre[(movies_with_genre['userId'] == user_id)]
+
+        user_vector = np.zeros(len(genre_dict))
+        count_vector = np.zeros(len(genre_dict))
+
+        user_avg_rating = 0
+        movies_rated_count = 0
+
+        for _, row in user_rating_df.iterrows():
+            user_avg_rating += row.rating
+            movies_rated_count += 1
+            genres = row.genres
+
+            # Check if genres is a float (non-iterable)
+            if not isinstance(genres, float):
+                user_movie_vector = np.zeros(len(genre_dict))
+
+                for g in genres:
+                    user_movie_vector[genre_dict[g]] = 1
+                    count_vector[genre_dict[g]] += 1
+
+                user_vector += user_movie_vector * row.rating
+
+        count_vector = np.where(count_vector == 0, 1, count_vector)
+        user_vector = np.divide(user_vector, count_vector)
+        user_avg_rating /= movies_rated_count
+        row_df = pd.DataFrame([[user_id, user_vector, user_avg_rating, movies_rated_count]],
+                            columns=['userId', 'user_vector', 'avg_rating', 'num_movies_rated'])
+        # Suprime solo los FutureWarnings específicos de Pandas
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            # Tu código que causa el FutureWarning
+            user_df = pd.concat([user_df, row_df], ignore_index=True)
+
+    user_df['user_vector'] = user_df['user_vector'].apply(lambda x: np.array_str(x))
+    user_df['user_vector'] = user_df['user_vector'].apply(lambda x: x.replace('[', ' ').replace(']', ' ').strip().split())
+    user_df['user_vector'] = user_df['user_vector'].apply(lambda x: np.asarray(x).astype(float))
+
+    return user_df, idx_to_genre
+
+def user_top_genre(user_df, idx_to_genre, userId):
+    user_vec = user_df['user_vector'][user_df['userId'] == userId].values[0].copy()
+    top_genre_indices = np.flip(np.argsort(user_vec))
+    genre_list = []
+    for i in top_genre_indices[:3]:
+        genre_list.append(idx_to_genre[i])
+    return genre_list
+
+def recommender_popularity(df, user_id, n=30):
+    user_df, idx_to_genre = InfoUser(df)
+    genres = user_top_genre(user_df, idx_to_genre, user_id)
+    recomendation = pd.DataFrame()
+    for genre in genres:
+        # Suprime solo los FutureWarnings específicos de Pandas
+        with warnings.catch_warnings():
+            warnings.simplefilter(action='ignore', category=FutureWarning)
+            recomendation = pd.concat([recomendation, recommender_genre(df, genre, n*2)])
+        recomendation.drop_duplicates(subset='id', keep='first', inplace=True)
+
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(recomendation))
+
+    recomendation = recomendation.head(n)
+    return recomendation
 
 def euclidean_similarity(ratings_dict, person1, person2):
     common_ranked_items = [itm for itm in ratings_dict[person1] if itm in ratings_dict[person2]]
@@ -205,7 +331,7 @@ def convert_traintest_dataframe_forsurprise(training_dataframe, testing_datafram
     testset = testset.construct_testset(testset.raw_ratings)
     return trainset, testset
 
-def recommendation(model, trainset, testset):
+def recommendation_model(model, trainset, testset):
   # Train the algorithm on the trainset, and predict ratings for the testset
   start_fit = time.time()
   model.fit(trainset)
@@ -228,7 +354,7 @@ def recommendation(model, trainset, testset):
 
 def recommender_surprise(data, movies, model, user_id, n=10):
     # Cargar el conjunto de datos en el formato de Surprise
-    reader = Reader(rating_scale=(1, 5))
+    reader = Reader(rating_scale=(0, 5))
     data = Dataset.load_from_df(data[['userId', 'movieId', 'rating']], reader)
     trainset = data.build_full_trainset()
 
@@ -245,10 +371,17 @@ def recommender_surprise(data, movies, model, user_id, n=10):
     # Ordenar las predicciones basadas en la calificación estimada
     predictions.sort(key=lambda x: x.est, reverse=True)
 
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(predictions))
+
     # Obtener las top 'n' recomendaciones de películas
     top_n_recommendations = predictions[:n]
 
     # Mapear los IDs de las películas a sus títulos
-    top_movies = pd.DataFrame([(pred.iid, movies[movies['id'] == pred.iid]['title'].iloc[0], pred.est) for pred in top_n_recommendations], columns=['itemID', 'title', 'estimatedRating'])
+    top_movies = pd.DataFrame([(
+        pred.iid,
+        movies[movies['id'] == pred.iid]['title'].iloc[0] if not movies[movies['id'] == pred.iid].empty else 'Unknown',
+        pred.est
+    ) for pred in top_n_recommendations], columns=['itemID', 'title', 'estimatedRating'])
 
     return top_movies
