@@ -8,6 +8,7 @@ import math
 from tabulate import tabulate
 import difflib
 import random
+from surprise import dump
 
 def extract_name(s):
     if isinstance(s, str):
@@ -251,3 +252,47 @@ def generate_recommendation(user_id, model, movies_metadata, thresh=4):
         if rating >= thresh:
             movie_id = get_movie_id(movie_title, movies_metadata)
             return movie_title, get_movie_info(movie_id, movies_metadata)
+
+def recommender_genre(df, genre, n=30):
+    # Filtra películas por género
+    mask = df.genres.apply(lambda x: genre in x)
+    filtered_movie = df[mask]
+
+    # Ordena las películas filtradas por popularidad
+    filtered_movie = filtered_movie.sort_values(by='popularity', ascending=False)
+
+    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
+    n = min(n, len(filtered_movie))
+
+    # Selecciona los 'n' mejores movieIds
+    top_movie_ids = filtered_movie['movieId'].head(n).values.tolist()
+
+    # Crea un DataFrame con títulos e IDs
+    recomendation = pd.DataFrame({
+        'title': [df[df['movieId'] == movie_id]['title'].values[0] for movie_id in top_movie_ids],
+        'id': top_movie_ids
+    })
+
+    return recomendation
+
+
+def final_user_recomendation(user_id):
+
+    _, modelSVD = dump.load("Modelos/modelSVD")
+    movies_metadata = pd.read_parquet("input/movies_final.parquet")
+    recommendation = generate_recommendation(user_id, modelSVD, movies_metadata)
+    return recommendation
+
+
+def final_movie_recomendation(movie):
+
+    df = "ver de donde sacar el df"
+    similarity_matrix = "ver de donde sacar la matriz"
+    top5 = recommender(df, similarity_matrix, movie, 5)
+    return top5
+
+def final_genre_recomendation(genre):
+    df_genre = pd.read_parquet("input/movies_with_genre.parquet")
+    recommendations = recommender_genre(df_genre, genre, n=5)
+
+    return recommendations
