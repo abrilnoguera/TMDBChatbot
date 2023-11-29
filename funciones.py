@@ -9,7 +9,10 @@ from tabulate import tabulate
 import difflib
 import random
 import warnings
+import dump
 
+
+# Preparacion de la Base de Datos:
 def extract_name(s):
     if isinstance(s, str):
         match = re.search(r"'name':\s*'([^']*)'", s)
@@ -35,9 +38,10 @@ def get_director(column):
 
     return director
 
+
+# Content Based Recomendator para Soup:
 def create_soup(x):
     return ' '.join(x['keywords']) + ' ' + ' '.join(x['cast']) + ' ' + x['director'] + ' ' + x['director'] + ' ' + ' '.join(x['genres'])
-
 
 def recommender(df, similarity_matrix, movie, n=30):
     # Encuentra el índice de la película proporcionada en el DataFrame.
@@ -90,6 +94,8 @@ def recommender_movies(ratings, df, similarity_matrix, user_id, n=30):
     recomendation = recomendation.head(n)
     return recomendation
 
+
+# Content Based Recomendator segun Popularidad:
 def recommender_genre(df, genre, n=30):
     # Filtra películas por género
     mask = df.genres.apply(lambda x: genre in x)
@@ -189,6 +195,7 @@ def recommender_popularity(df, user_id, n=30):
     recomendation = recomendation.head(n)
     return recomendation
 
+# Memory Based Recomendator:
 def euclidean_similarity(ratings_dict, person1, person2):
     common_ranked_items = [itm for itm in ratings_dict[person1] if itm in ratings_dict[person2]]
     if len(common_ranked_items) == 0:
@@ -283,20 +290,6 @@ def movies_pearson_similarity(ratings_dict, movie1, movie2):
     pearson_corr = numerator / denominator
     return pearson_corr
 
-def recommend_similar_movies(ratings_dict, target_movie, similarity=movies_pearson_similarity, num_recommendations=5):
-    movie_similarities = {}
-
-    for movie in ratings_dict:
-        if movie != target_movie:
-            similarity_score = similarity(ratings_dict, target_movie, movie, ratings_dict)
-            movie_similarities[movie] = similarity_score
-
-    # Sort movies by their similarity scores
-    similar_movies = sorted(movie_similarities.items(), key=lambda x: x[1], reverse=True)
-
-    # Return the top N most similar movies
-    return similar_movies[:num_recommendations]
-
 def recommend_similar_movies(ratings_dict, target_movie, movies_metadata, similarity=movies_pearson_similarity, num_recommendations=5):
     movie_similarities = {}
 
@@ -323,6 +316,7 @@ def recommend_similar_movies(ratings_dict, target_movie, movies_metadata, simila
     # Print recommendations as a table
     print(tabulate(top_recommendations_with_titles, headers=headers, tablefmt="pretty"))
 
+# Model Based Recomendator:
 def convert_traintest_dataframe_forsurprise(training_dataframe, testing_dataframe):
     reader = Reader(rating_scale=(0, 5))
     trainset = Dataset.load_from_df(training_dataframe[['userId', 'movieId', 'rating']], reader)
@@ -350,7 +344,6 @@ def recommendation_model(model, trainset, testset):
   print('Tiempo de Entrenamiento: ', fit_time ,' segundos')
   print('Tiempo de Testeo: ', test_time,' segundos')
   return
-
 
 def recommender_surprise(data, movies, model, user_id, n=10):
     # Cargar el conjunto de datos en el formato de Surprise
@@ -385,3 +378,24 @@ def recommender_surprise(data, movies, model, user_id, n=10):
     ) for pred in top_n_recommendations], columns=['itemID', 'title', 'estimatedRating'])
 
     return top_movies
+
+def final_user_recomendation(user_id):
+    # Usando el Modelo Hibrido
+    _, modelSVD = dump.load("Modelos/modelSVD")
+    movies_metadata = pd.read_parquet("input/movies_final.parquet")
+    recommendation = generate_recommendation(user_id, modelSVD, movies_metadata)
+    return recommendation
+
+
+def final_movie_recomendation(movie):
+
+    df = "ver de donde sacar el df"
+    similarity_matrix = "ver de donde sacar la matriz"
+    top5 = recommender(df, similarity_matrix, movie, 5)
+    return top5
+
+def final_genre_recomendation(genre):
+    df_genre = pd.read_parquet("input/movies_with_genre.parquet")
+    recommendations = recommender_genre(df_genre, genre, n=5)
+
+    return recommendations
