@@ -9,6 +9,7 @@ from tabulate import tabulate
 import difflib
 import random
 import warnings
+import unicodedata
 
 
 
@@ -424,24 +425,82 @@ def recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_wi
     recommendation = recommendation.sort_values(by='recommend', ascending=False).head(n)
     return recommendation.index.tolist()
 
-def final_user_recommendation(user_id):
-    # Usando el Modelo Hibrido
-    _, modelSVD = dump.load("Modelos/modelSVD")
-    movies_metadata = pd.read_parquet("input/movies_final.parquet")
-    recommendation = generate_recommendation(user_id, modelSVD, movies_metadata)
-    return recommendation
+def eliminar_tildes(cadena):
+    """Elimina los acentos de la cadena dada."""
+    cadena_sin_tildes = ''.join((c for c in unicodedata.normalize('NFD', cadena) if unicodedata.category(c) != 'Mn'))
+    return cadena_sin_tildes
 
+# Mapeo de géneros de español a inglés
+generos_es_en = {
+    'familia': 'Family',
+    'comedia': 'Comedy',
+    'aventura': 'Adventure',
+    'documental': 'Documentary',
+    'fantasia': 'Fantasy',  # 'fantasía' sin tilde
+    'accion': 'Action',     # 'acción' sin tilde
+    'suspense': 'Thriller',
+    'misterio': 'Mystery',
+    'terror': 'Horror',
+    'musica': 'Music',      # 'música' sin tilde
+    'drama': 'Drama',
+    'pelicula de tv': 'TV Movie',  # 'película' sin tilde
+    'guerra': 'War',
+    'animacion': 'Animation',      # 'animación' sin tilde
+    'romance': 'Romance',
+    'historia': 'History',
+    'crimen': 'Crime',
+    'extranjero': 'Foreign',
+    'ciencia ficcion': 'Science Fiction',  # 'ciencia ficción' sin tilde
+    'western': 'Western'
+}
 
-def final_movie_recommendation(movie):
+def traducir_y_formatear_genero(genero_usuario):
+    # Eliminar tildes y convertir a minúsculas
+    genero_usuario = eliminar_tildes(genero_usuario).lower()
+    
+    # Traducir del español al inglés
+    genero_ingles = generos_es_en.get(genero_usuario, genero_usuario)
 
-    df = "ver de donde sacar el df"
-    similarity_matrix = "ver de donde sacar la matriz"
-    top5 = recommender(df, similarity_matrix, movie, 5)
-    return top5
+    # Formatear la cadena en inglés
+    genero_modelo = genero_ingles.title()
 
-def final_genre_recommendation(genre):
-    df_genre = pd.read_parquet("input/movies_with_genre.parquet")
-    recommendations = recommender_genre(df_genre, genre, n=5)
+    return genero_modelo
 
-    return recommendations
+usuarios_dict = {
+    "fveliz": 1,
+    "jculici": 2,
+    "emartineliano": 3,
+    "aalfie": 4,
+    "larbues": 5,
+    "ccollado": 6,
+    "ideachaval": 7,
+    "dgoni": 8,
+    "meppens": 9,
+    "shfeilbogen": 10,
+    "agonzalez": 11,
+    "sgonzalez": 12,
+    "sivnisky": 13,
+    "fkaplun": 14,
+    "llara": 15,
+    "imurtagh": 16,
+    "anoguera": 17,
+    "cpalomeque": 18,
+    "cpettinato": 19,
+    "nreiman": 20,
+    "rrodrigues": 21,
+    "vsaguiar": 22,
+    "esargenti": 23,
+    "jscorza": 24,
+    "jsoleño": 25,
+    "ssoto": 26,
+    "sweintraub": 27
+}
 
+def formatear_usuario(usuario):
+    # Eliminar tildes y convertir a minúsculas
+    usuario = eliminar_tildes(usuario).lower()
+
+    # Traducir del español al inglés
+    usuario = usuarios_dict.get(usuario)
+
+    return usuario

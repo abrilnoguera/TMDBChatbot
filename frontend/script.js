@@ -3,7 +3,7 @@ displayWelcomeMessage();
 
 // Function to display the welcome message
 function displayWelcomeMessage() {
-    var welcomeMessage = "¡Hola! Elige una de las siguientes opciones:\n1. Usuario - Ingresa tu nombre de usuario para una recomendación personalizada.\n2. Género - Ingresa un género para obtener una recomendación basada en su popularidad.\n3. Película - Ingresa el nombre de una película para obtener una recomendación similar.";
+    var welcomeMessage = "¡Hola! Bienvenido al chatbot de recomendaciones de películas. Por favor, elige una de las siguientes opciones escribiendo el comando correspondiente:\n- Escribe 'Usuario' para una recomendación personalizada basada en tu nombre de usuario.\n- Escribe 'Género' para obtener una recomendación basada en un género específico.\n- Escribe 'Película' para obtener recomendaciones basadas en una película que te gusta.\n- Escribe 'Salir' para finalizar la conversación.";
     displayMessage(welcomeMessage, 'assistant');
 }
 
@@ -11,31 +11,33 @@ let currentOption = '';
 
 function sendMessage() {
     var userInput = document.getElementById('user-input').value.trim();
-    var data = {};
 
-    // Mostrar el mensaje del usuario en el chatbox
     displayMessage(userInput, 'user');
-    document.getElementById('user-input').value = ''; // Limpiar el input del usuario
+    document.getElementById('user-input').value = '';
+
+    if (userInput.toLowerCase() === 'salir') {
+        endChat();
+        return;
+    }
 
     if (currentOption === '') {
         switch (userInput.toLowerCase()) {
             case 'usuario':
                 currentOption = 'usuario';
-                displayMessage('Por favor, ingresa tu nombre de usuario.', 'assistant');
+                displayMessage('Por favor, ingresa tu nombre de usuario para recibir recomendaciones personalizadas.', 'assistant');
                 break;
             case 'genero':
                 currentOption = 'genero';
-                displayMessage('Por favor, ingresa un género.', 'assistant');
+                displayMessage('Indica un género cinematográfico para recibir recomendaciones.', 'assistant');
                 break;
             case 'pelicula':
                 currentOption = 'pelicula';
-                displayMessage('Por favor, ingresa el nombre de una película.', 'assistant');
+                displayMessage('Escribe el nombre de una película que te gusta para obtener recomendaciones similares.', 'assistant');
                 break;
             default:
-                displayMessage('Opción no reconocida. Por favor, elige "Usuario", "Género" o "Película".', 'assistant');
+                displayMessage('Opción no reconocida. Por favor, escribe "Usuario", "Género", "Película" o "Salir".', 'assistant');
         }
     } else {
-        // Lógica para manejar las solicitudes basadas en la opción elegida
         handleOption(userInput);
     }
 }
@@ -88,7 +90,7 @@ function resetChat() {
 }
 
 
-// // Function to display a message in the chat box
+// Function to display a message in the chat box
 function displayMessage(message, sender, isRecommendation = false) {
     var chatBox = document.getElementById('chat-box');
     var messageWrapper = document.createElement('div');
@@ -98,7 +100,18 @@ function displayMessage(message, sender, isRecommendation = false) {
     messageElement.classList.add('message', sender);
 
     if (isRecommendation) {
-        messageElement.innerText = "Te recomiendo la siguiente pelicula: " + message;
+        // Comienza con el mensaje inicial
+        let messageContent = "Te recomiendo las siguientes películas:<br>";
+    
+        // Agrega cada película en la lista como un elemento de lista
+        messageContent += "<ul>";
+        message.forEach((movie) => {
+            messageContent += `<li>${movie}</li>`;
+        });
+        messageContent += "</ul>";
+    
+        // Establece el contenido del elemento del mensaje
+        messageElement.innerHTML = messageContent;
     } else {
         messageElement.innerText = message;
     }
@@ -109,6 +122,8 @@ function displayMessage(message, sender, isRecommendation = false) {
     var spacer = document.createElement('div');
     spacer.classList.add('spacer');
     chatBox.appendChild(spacer);
+
+    scrollToBottom();
 }
 
 // Function to display loading message with animation
@@ -142,6 +157,21 @@ function removeLoadingMessage() {
     if (loadingMessage) {
         loadingMessage.parentNode.removeChild(loadingMessage);
     }
+}
+
+function endChat() {
+    displayMessage("¡Gracias por usar nuestro chatbot! Hasta la próxima.", 'assistant');
+    setTimeout(clearChat, 3000); // Opcional: Puedes decidir si quieres borrar el chat después de un tiempo
+}
+
+function clearChat() {
+    var chatBox = document.getElementById('chat-box');
+    chatBox.innerHTML = ''; // Esto borrará el contenido del chat
+}
+
+function scrollToBottom() {
+    var chatBox = document.getElementById('chat-box');
+    chatBox.scrollTop = chatBox.scrollHeight;
 }
 
 // Trigger sendMessage function on Enter key press
