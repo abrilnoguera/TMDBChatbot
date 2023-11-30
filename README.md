@@ -10,6 +10,6 @@ Este codigo ArchivosUtiles/create-movie-dataset.ipynb descarga los inputs sobre 
 Se realizaron sistemas de recomendacion para recomendar un top de peliculas en base a un usuario, un genero o otra pelicula. 
 
 # App
-Se realizo un chat bot al que le puedes pedir recomendaciones.
+Se realizo un chat bot al que le puedes pedir recomendaciones. Esta esta hosteada en [HuggingFace](https://huggingface.co/spaces/abrilnoguera/TrabajoAPA)
 
 ![Demostración](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOW5tdDFwNm51azh2ZDduaHRsOHBrbW8yNThidHJsMzU2Nmlvb243eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6tJEeftnUgWhM0U0kQ/giphy.gif)
