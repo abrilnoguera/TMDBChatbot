@@ -33,7 +33,7 @@ h1 {
     border-radius: 10px;
     box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
     align-self: center;
-    height: 600px; /* Altura fija o proporcional */
+    height: 550px; /* Altura fija o proporcional */
 }
 
 .chat-box {

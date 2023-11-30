@@ -47,7 +47,7 @@ def predict_genre():
         # Obtener solo los títulos de las películas si result_df es un DataFrame
         if isinstance(result_df, pd.DataFrame):
             titles = result_df['title'].tolist()
-            print(titles)
+
             return jsonify({'result': titles}), 200
         else:
             return jsonify({'error': 'Result is not a DataFrame'}), 500
@@ -62,12 +62,13 @@ def predict_movie():
         data = request.get_json()
         print(data)
         movie_name = data.get('movie', "")
+        movie_name = movie_name.lower().title()
         result_df = recommender(movies_soup,similarity_matrix, movie_name, 5)
 
         # Obtener solo los títulos de las películas si result_df es un DataFrame
         if isinstance(result_df, pd.DataFrame):
             titles = result_df['title'].tolist()
-            print(titles)
+
             return jsonify({'result': titles}), 200
         else:
             return jsonify({'error': 'Result is not a DataFrame'}), 500
