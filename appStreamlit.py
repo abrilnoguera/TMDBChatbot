@@ -76,15 +76,15 @@ user_choice = st.selectbox("Elige una opción:", [""] + options)
 #     st.session_state['current_option'] = None
 
 
-# # Health check route
-# @st.cache()
-# def health_check():
-#     return True
+# Health check route
+@st.cache()
+def health_check():
+    return True
 
-# # Health check route
-# if st.checkbox('Health Check'):
-#     health_status = health_check()
-#     if health_status:
-#         st.success('Health check passed!')
-#     else:
-#         st.error('Health check failed.')
+# Health check route
+if st.checkbox('Health Check'):
+    health_status = health_check()
+    if health_status:
+        st.success('Health check passed!')
+    else:
+        st.error('Health check failed.')
