@@ -25,38 +25,66 @@ dict = {'anoguera':1,
 if 'current_option' not in st.session_state:
     st.session_state['current_option'] = None
 
-# Mostrar el mensaje de bienvenida
+# # Mostrar el mensaje de bienvenida
 st.write("¡Hola! Elige una de las siguientes opciones:")
 
 # Opciones
 options = ['Usuario', 'Género', 'Película']
 user_choice = st.selectbox("Elige una opción:", [""] + options)
 
-# Manejar la selección del usuario
-if user_choice:
-    st.session_state['current_option'] = user_choice.lower()
-    st.write(f"Has seleccionado: {user_choice}")
+# # Manejar la selección del usuario
+# if user_choice:
+#     st.session_state['current_option'] = user_choice.lower()
+#     st.write(f"Has seleccionado: {user_choice}")
 
-# Solicitar entrada adicional basada en la opción
-if st.session_state['current_option'] == 'usuario':
-    user_id = st.text_input("Ingresa tu nombre de usuario para una recomendación personalizada.")
-elif st.session_state['current_option'] == 'genero':
-    genre = st.text_input("Ingresa un género para obtener una recomendación.")
-elif st.session_state['current_option'] == 'pelicula':
-    movie_name = st.text_input("Ingresa el nombre de una película para obtener una recomendación similar.")
+# # Solicitar entrada adicional basada en la opción
+# if st.session_state['current_option'] == 'usuario':
+#     user_id = st.text_input("Ingresa tu nombre de usuario para una recomendación personalizada.")
+# elif st.session_state['current_option'] == 'genero':
+#     genre = st.text_input("Ingresa un género para obtener una recomendación.")
+# elif st.session_state['current_option'] == 'pelicula':
+#     movie_name = st.text_input("Ingresa el nombre de una película para obtener una recomendación similar.")
 
-# Botón para enviar la solicitud
-if st.button("Enviar"):
-    # Aquí iría la lógica para procesar la solicitud y obtener las recomendaciones
-    st.write("Procesando tu solicitud...")
+# # Botón para enviar la solicitud
+# if st.button("Enviar"):
+#     st.write("Procesando tu solicitud...")
 
-    # Suponiendo que obtienes una lista de recomendaciones (simulación)
-    recommendations = ["Pelicula 1", "Pelicula 2", "Pelicula 3"]  # Esto debería ser el resultado real de tu lógica
+#     try:
+#         if st.session_state['current_option'] == 'usuario':
+#             user_id = dict.get(user_id, None)  # Obtener el ID de usuario del diccionario
+#             if user_id is not None:
+#                 titles = recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, user_id, 5)
+#             else:
+#                 st.write("Nombre de usuario no encontrado.")
+#         elif st.session_state['current_option'] == 'genero':
+#             titles = recommender_genre(movies_with_genre, genre, 5)
+#         elif st.session_state['current_option'] == 'pelicula':
+#             titles = recommender(movies_soup, similarity_matrix, movie_name, 5)
 
-    # Mostrar las recomendaciones
-    st.write("Te recomiendo las siguientes películas:")
-    for movie in recommendations:
-        st.write(f"- {movie}")
+#         # Mostrar las recomendaciones
+#         if titles:
+#             st.write("Te recomiendo las siguientes películas:")
+#             for title in titles:
+#                 st.write(f"- {title}")
+#         else:
+#             st.write("No se encontraron recomendaciones.")
 
-    # Reiniciar el estado
-    st.session_state['current_option'] = None
+#     except Exception as e:
+#         st.write(f"Error: {e}")
+
+#     # Reiniciar el estado
+#     st.session_state['current_option'] = None
+
+
+# # Health check route
+# @st.cache()
+# def health_check():
+#     return True
+
+# # Health check route
+# if st.checkbox('Health Check'):
+#     health_status = health_check()
+#     if health_status:
+#         st.success('Health check passed!')
+#     else:
+#         st.error('Health check failed.')
