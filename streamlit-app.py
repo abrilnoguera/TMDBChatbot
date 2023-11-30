@@ -9,12 +9,10 @@ from funciones import *
 # Importa cualquier otra biblioteca que necesites
 
 # Carga de datos y modelos
-movies_soup = pd.read_parquet('./input/movies_with_credits.parquet')
+movies_soup = pd.read_parquet('./input/movies_soup.parquet')
 movies_with_genre = pd.read_parquet('./input/movies_with_genre.parquet')
 ratings_sample = pd.read_parquet('./input/ratings_sample.parquet')
-ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_soup['id'])]
-ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_with_genre['id'])]
-similarity_matrix = sparse.load_npz('./input/similarity_matrix.npz')
+similarity_matrix = np.load('./input/similarity_matrix.npy')
 _, modelKNN = dump.load('Modelos/modelKNN')
 _, modelSVD = dump.load('Modelos/modelSVD')
 
@@ -35,9 +33,9 @@ def main():
             usuario_id = dict.get(usuario)
             if usuario_id is not None:
                 recomendaciones = recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, usuario_id, n=5)
-                if not recomendaciones.empty:
+                if len(recomendaciones) > 0:
                     st.write("Recomendaciones:")
-                    for pelicula in recomendaciones['title']:
+                    for pelicula in recomendaciones:
                         st.write(pelicula)
                 else:
                     st.write("No se encontraron recomendaciones.")
