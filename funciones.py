@@ -2,13 +2,14 @@ import re
 import ast
 import pandas as pd
 import numpy as np
-from surprise import Reader, Dataset,accuracy, dump
+from surprise import Reader, Dataset,accuracy
 import time
 import math
 from tabulate import tabulate
 import difflib
 import random
 import warnings
+import dump
 
 
 # Preparacion de la Base de Datos:
@@ -64,12 +65,12 @@ def recommender(df, similarity_matrix, movie, n=30):
 
     # Crea un DataFrame con títulos de películas y sus puntajes de similitud.
     pd.set_option('display.float_format', '{:.2f}'.format)
-    recommendation = pd.DataFrame({
+    recomendation = pd.DataFrame({
         'title': df['title'].iloc[movie_indices],
         'similarity_score': scores
     })
 
-    return recommendation
+    return recomendation
 
 def recommender_movies(ratings, df, similarity_matrix, user_id, n=30):
 
@@ -78,20 +79,20 @@ def recommender_movies(ratings, df, similarity_matrix, user_id, n=30):
     movies = movies['movieId'].head(a)
     if a == 0:
         return pd.DataFrame()
-    recommendation = pd.DataFrame()
+    recomendation = pd.DataFrame()
     for movie in movies:
         title = df[df['id']==movie]['title'].values[0]
         # Suprime solo los FutureWarnings específicos de Pandas
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=FutureWarning)
-            recommendation = pd.concat([recommendation, recommender(df, similarity_matrix, title, n*2)])
-        recommendation.drop_duplicates(subset='title', keep='first', inplace=True)
+            recomendation = pd.concat([recomendation, recommender(df, similarity_matrix, title, n*2)])
+        recomendation.drop_duplicates(subset='title', keep='first', inplace=True)
 
     # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
-    n = min(n, len(recommendation))
+    n = min(n, len(recomendation))
 
-    recommendation = recommendation.head(n)
-    return recommendation
+    recomendation = recomendation.head(n)
+    return recomendation
 
 
 # Content Based Recomendator segun Popularidad:
@@ -110,12 +111,12 @@ def recommender_genre(df, genre, n=30):
     top_movie_ids = filtered_movie['movieId'].head(n).values.tolist()
 
     # Crea un DataFrame con títulos e IDs
-    recommendation = pd.DataFrame({
+    recomendation = pd.DataFrame({
         'title': [df[df['movieId'] == movie_id]['title'].values[0] for movie_id in top_movie_ids],
         'id': top_movie_ids
     })
 
-    return recommendation
+    return recomendation
 
 def InfoUser(movies_with_genre):
     unique_genre = movies_with_genre['genres'].explode().unique()
@@ -180,19 +181,19 @@ def user_top_genre(user_df, idx_to_genre, userId):
 def recommender_popularity(df, user_id, n=30):
     user_df, idx_to_genre = InfoUser(df)
     genres = user_top_genre(user_df, idx_to_genre, user_id)
-    recommendation = pd.DataFrame()
+    recomendation = pd.DataFrame()
     for genre in genres:
         # Suprime solo los FutureWarnings específicos de Pandas
         with warnings.catch_warnings():
             warnings.simplefilter(action='ignore', category=FutureWarning)
-            recommendation = pd.concat([recommendation, recommender_genre(df, genre, n*2)])
-        recommendation.drop_duplicates(subset='id', keep='first', inplace=True)
+            recomendation = pd.concat([recomendation, recommender_genre(df, genre, n*2)])
+        recomendation.drop_duplicates(subset='id', keep='first', inplace=True)
 
     # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
-    n = min(n, len(recommendation))
+    n = min(n, len(recomendation))
 
-    recommendation = recommendation.head(n)
-    return recommendation
+    recomendation = recomendation.head(n)
+    return recomendation
 
 # Memory Based Recomendator:
 def euclidean_similarity(ratings_dict, person1, person2):
@@ -378,85 +379,22 @@ def recommender_surprise(data, movies, model, user_id, n=10):
 
     return top_movies
 
-# Modelo Hibrido:
-def recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, userId, n = 10):
-
-    # Selecciona las peliculas que el usuario aun no vio:
-    user_movies = ratings_sample[ratings_sample['userId'] == userId]
-    user_movies = user_movies['movieId'].values.tolist()
-
-    m = movies_soup.loc[~movies_soup['id'].isin(user_movies),'id'].unique()
-
-    recommendation = pd.DataFrame(m, columns=['movieId'])
-    titulos = movies_soup[['id','title']].drop_duplicates(subset=['id'])
-    recommendation = recommendation.merge(titulos, left_on='movieId', right_on='id', how='left')
-    recommendation['recommend'] = 0
-
-    # Utilizando Content Based Recommender:
-    # Segun keywords genero, cast y director
-    p = recommender_movies(ratings_sample, movies_soup, similarity_matrix, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='similarity_score', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
-
-    # Segun popularidad:
-    p = recommender_popularity(movies_with_genre, userId, n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
-
-    # Model Based Recommender:
-    # KNN
-    p = recommender_surprise(ratings_sample, movies_with_genre, modelKNN, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='estimatedRating', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
-
-    # SVD
-    p = recommender_surprise(ratings_sample, movies_with_genre, modelSVD, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='estimatedRating', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
-
-    recommendation = recommendation.sort_values(by ='recommend', ascending=False)
-
-    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
-    n = min(n, len(recommendation))
-
-    # Obtener las top 'n' recomendaciones de películas
-    recommendation = recommendation[:n]
-    recommendation = recommendation['title']
-
-    return recommendation
-
-def final_user_recommendation(user_id):
+def final_user_recomendation(user_id):
     # Usando el Modelo Hibrido
     _, modelSVD = dump.load("Modelos/modelSVD")
     movies_metadata = pd.read_parquet("input/movies_final.parquet")
-    recommendation = recommender_surprise(user_id, modelSVD, movies_metadata)
-    recommendation.iloc[0,'title']
+    recommendation = generate_recommendation(user_id, modelSVD, movies_metadata)
     return recommendation
 
 
-def final_movie_recommendation(movie):
+def final_movie_recomendation(movie):
 
     df = "ver de donde sacar el df"
     similarity_matrix = "ver de donde sacar la matriz"
     top5 = recommender(df, similarity_matrix, movie, 5)
     return top5
 
-def final_genre_recommendation(genre):
+def final_genre_recomendation(genre):
     df_genre = pd.read_parquet("input/movies_with_genre.parquet")
     recommendations = recommender_genre(df_genre, genre, n=5)
 
