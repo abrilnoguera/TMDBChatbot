@@ -7,7 +7,7 @@ Se utilizo [Create Movie Dataset](https://www.kaggle.com/code/abhakta47/create-m
 Este codigo ArchivosUtiles/create-movie-dataset.ipynb descarga los inputs sobre 10000 peliculas en ingles y concatena con la informacion obtenida anteriormente. Los links y ratings se obtuvieron en the [Official GroupLens](https://grouplens.org/datasets/movielens/latest/). Estos archivos son extra a TMDB. 
 
 # Sistemas de Recomendacion
-Se realizaron sistemas de recomendacion para recomendar un top de peliculas en base a un usuario, un genero o otra pelicula. 
+Se realizaron [sistemas de recomendacion](https://github.com/abrilnoguera/Trabajo2APA/blob/main/RecomendationSystems.ipynb) para recomendar un top de peliculas en base a un usuario, un genero o otra pelicula. 
 
 # App
 Se realizo un chat bot al que le puedes pedir recomendaciones. Esta esta hosteada en [HuggingFace](https://huggingface.co/spaces/abrilnoguera/TrabajoAPA)
