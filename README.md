@@ -13,3 +13,6 @@ Se realizaron sistemas de recomendacion para recomendar un top de peliculas en b
 Se realizo un chat bot al que le puedes pedir recomendaciones. Esta esta hosteada en [HuggingFace](https://huggingface.co/spaces/abrilnoguera/TrabajoAPA)
 
 ![Demostración](https://media4.giphy.com/media/v1.Y2lkPTc5MGI3NjExOW5tdDFwNm51azh2ZDduaHRsOHBrbW8yNThidHJsMzU2Nmlvb243eCZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9Zw/6tJEeftnUgWhM0U0kQ/giphy.gif)
+
+# Presentacion
+La [presentación](https://www.canva.com/design/DAF1fhsBoh0/ZApKr6LK6evA0EUBsxVxYg/edit?utm_content=DAF1fhsBoh0&utm_campaign=designshare&utm_medium=link2&utm_source=sharebutton) hace un repaso de todo el trabajo realizado. 
