@@ -1,90 +1,55 @@
 import streamlit as st
-from funciones import *
-import os
-import pandas as pd
+from funciones import recommender_hybrid, recommender_genre, recommender
 from scipy import sparse
 from sklearn.metrics.pairwise import cosine_similarity
+import pandas as pd
 import json
 
-movies_soup = pd.read_parquet('./input/movies_with_credits.parquet')
-movies_with_genre = pd.read_parquet('./input/movies_with_genre.parquet')
-ratings_sample = pd.read_parquet('./input/ratings_sample.parquet')
-ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_soup['id'])]
-ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_with_genre['id'])]
-tags_matrix = sparse.load_npz('./input/tags_matrix.npz')
-similarity_matrix = cosine_similarity(tags_matrix,tags_matrix)
-_, modelKNN = dump.load('Modelos/modelKNN')
-_, modelSVD = dump.load('Modelos/modelSVD')
+def main():
+    # Carga de datos y modelos
+    movies_soup = pd.read_parquet('./input/movies_with_credits.parquet')
+    movies_with_genre = pd.read_parquet('./input/movies_with_genre.parquet')
+    ratings_sample = pd.read_parquet('./input/ratings_sample.parquet')
+    ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_soup['id'])]
+    ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_with_genre['id'])]
+    tags_matrix = sparse.load_npz('./input/tags_matrix.npz')
+    similarity_matrix = cosine_similarity(tags_matrix, tags_matrix)
+    _, modelKNN = dump.load('Modelos/modelKNN')
+    _, modelSVD = dump.load('Modelos/modelSVD')
 
-dict = {'anoguera':1,
-        'aalfie':2,
-        'larbues':3
-        }
+    user_dict = {'anoguera':1, 'aalfie':2, 'larbues':3}
 
-# Inicializar el estado de sesión si aún no existe
-if 'current_option' not in st.session_state:
-    st.session_state['current_option'] = None
+    # Interfaz de usuario
+    st.title("Chatbot de Recomendación de Películas")
+    st.write("¡Hola! Elige una de las siguientes opciones:")
+    options = ['Usuario', 'Género', 'Película']
+    user_choice = st.selectbox("Elige una opción:", [""] + options)
 
-# # Mostrar el mensaje de bienvenida
-st.write("¡Hola! Elige una de las siguientes opciones:")
+    # Manejo de opciones
+    user_input = ''
+    if user_choice == 'Usuario':
+        user_input = st.text_input("Ingresa tu nombre de usuario para una recomendación personalizada.")
+    elif user_choice == 'Género':
+        user_input = st.text_input("Ingresa un género para obtener una recomendación.")
+    elif user_choice == 'Película':
+        user_input = st.text_input("Ingresa el nombre de una película para obtener una recomendación similar.")
 
-# Opciones
-options = ['Usuario', 'Género', 'Película']
-user_choice = st.selectbox("Elige una opción:", [""] + options)
+    # Botón de envío
+    if st.button("Enviar") and user_input:
+        try:
+            if user_choice == 'Usuario':
+                user_id = user_dict.get(user_input, None)
+                titles = recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, user_id, 5) if user_id else ["Nombre de usuario no encontrado."]
+            elif user_choice == 'Género':
+                titles = recommender_genre(movies_with_genre, user_input, 5)
+            elif user_choice == 'Película':
+                titles = recommender(movies_soup, similarity_matrix, user_input, 5)
 
-# # Manejar la selección del usuario
-# if user_choice:
-#     st.session_state['current_option'] = user_choice.lower()
-#     st.write(f"Has seleccionado: {user_choice}")
+            st.write("Te recomiendo las siguientes películas:")
+            for title in titles:
+                st.write(f"- {title}")
+        except Exception as e:
+            st.error(f"Error: {e}")
 
-# # Solicitar entrada adicional basada en la opción
-# if st.session_state['current_option'] == 'usuario':
-#     user_id = st.text_input("Ingresa tu nombre de usuario para una recomendación personalizada.")
-# elif st.session_state['current_option'] == 'genero':
-#     genre = st.text_input("Ingresa un género para obtener una recomendación.")
-# elif st.session_state['current_option'] == 'pelicula':
-#     movie_name = st.text_input("Ingresa el nombre de una película para obtener una recomendación similar.")
-
-# # Botón para enviar la solicitud
-# if st.button("Enviar"):
-#     st.write("Procesando tu solicitud...")
-
-#     try:
-#         if st.session_state['current_option'] == 'usuario':
-#             user_id = dict.get(user_id, None)  # Obtener el ID de usuario del diccionario
-#             if user_id is not None:
-#                 titles = recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, user_id, 5)
-#             else:
-#                 st.write("Nombre de usuario no encontrado.")
-#         elif st.session_state['current_option'] == 'genero':
-#             titles = recommender_genre(movies_with_genre, genre, 5)
-#         elif st.session_state['current_option'] == 'pelicula':
-#             titles = recommender(movies_soup, similarity_matrix, movie_name, 5)
-
-#         # Mostrar las recomendaciones
-#         if titles:
-#             st.write("Te recomiendo las siguientes películas:")
-#             for title in titles:
-#                 st.write(f"- {title}")
-#         else:
-#             st.write("No se encontraron recomendaciones.")
-
-#     except Exception as e:
-#         st.write(f"Error: {e}")
-
-#     # Reiniciar el estado
-#     st.session_state['current_option'] = None
-
-
-# Health check route
-@st.cache()
-def health_check():
-    return True
-
-# Health check route
-if st.checkbox('Health Check'):
-    health_status = health_check()
-    if health_status:
-        st.success('Health check passed!')
-    else:
-        st.error('Health check failed.')
+if __name__ == "__main__":
+    main()
