@@ -7,9 +7,6 @@ function displayWelcomeMessage() {
     displayMessage(welcomeMessage, 'assistant');
 }
 
-// let isFirstMessage = true;
-// let genero = false;
-
 let currentOption = '';
 
 function sendMessage() {
@@ -53,7 +50,7 @@ function handleOption(userInput) {
             url = '/predict';
             break;
         case 'genero':
-            data = { 'movie': userInput };
+            data = { 'genre': userInput };
             url = '/predictgenre';
             break;
         case 'pelicula':
@@ -91,108 +88,28 @@ function resetChat() {
 }
 
 
-
-// function sendMessage() {
-//     var userInput = document.getElementById('user-input').value;
-//     var data = {};
-
-//     if (isFirstMessage) {
-//         if (userInput.toLowerCase() === 'genero') {
-//             displayMessage(userInput, 'user');
-//             document.getElementById('user-input').value = '';
-//             displayMessage('Dime el género que te gustaría', 'assistant');
-//             isFirstMessage = false;
-//             genero = true;
-//             return; // Salir sin hacer una llamada a la API
-//         } else {
-//             data = { 'user_id': userInput };
-//         }
-//         isFirstMessage = false;
-//     } else {
-//         if (genero) {
-//             data = { 'movie': userInput };
-//             var url = '/predictgenre';
-
-//             fetch(url, {
-//                 method: 'POST',
-//                 headers: {
-//                     'Content-Type': 'application/json'
-//                 },
-//                 body: JSON.stringify(data)
-//             })
-//             .then(response => response.json())
-//             .then(data => {
-//                 removeLoadingMessage();
-//                 displayMessage(data.result, 'assistant', true);
-//                 displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
-//                 isFirstMessage = true;
-//             })
-//             .catch(error => {
-//                 console.error('Error:', error);
-//                 removeLoadingMessage();
-//                 displayMessage('Error fetching recommendation', 'assistant');
-//                 displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
-//                 isFirstMessage = true;
-//             });
-//             genero = false; // Reiniciar la bandera genero después de hacer la llamada a la API
-//         } else {
-//             data = { 'user_id': userInput };
-//         }
-//     }
-
-//     displayMessage(userInput, 'user'); // Mostrar el mensaje del usuario en el chatbox
-//     document.getElementById('user-input').value = ''; // Limpiar el input del usuario después de enviar el mensaje
-
-//     displayLoadingMessage();
-
-//     var url = '/predict';
-
-//     fetch(url, {
-//         method: 'POST',
-//         headers: {
-//             'Content-Type': 'application/json'
-//         },
-//         body: JSON.stringify(data)
-//     })
-//     .then(response => response.json())
-//     .then(data => {
-//         removeLoadingMessage();
-//         displayMessage(data.result, 'assistant', true);
-//         displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
-//         isFirstMessage = true;
-//     })
-//     .catch(error => {
-//         console.error('Error:', error);
-//         removeLoadingMessage();
-//         displayMessage('Error fetching recommendation', 'assistant');
-//         displayMessage("Queres otra recomendacion basada en genero o personalizada. Si la queres personalizada solamente escribi tu ID de usuario sino escribi genero", "assistant");
-//         isFirstMessage = true;
-//     });
-// }
-
-
 // // Function to display a message in the chat box
-// function displayMessage(message, sender, isRecommendation = false) {
-//     var chatBox = document.getElementById('chat-box');
-//     var messageWrapper = document.createElement('div');
-//     var messageElement = document.createElement('div');
+function displayMessage(message, sender, isRecommendation = false) {
+    var chatBox = document.getElementById('chat-box');
+    var messageWrapper = document.createElement('div');
+    var messageElement = document.createElement('div');
 
-//     messageWrapper.classList.add('message-wrapper');
-//     messageElement.classList.add('message', sender);
+    messageWrapper.classList.add('message-wrapper');
+    messageElement.classList.add('message', sender);
 
-//     if (isRecommendation) {
-//         messageElement.innerText = "Te recomiendo la siguiente pelicula: " + message;
-//     } else {
-//         messageElement.innerText = message;
-//     }
+    if (isRecommendation) {
+        messageElement.innerText = "Te recomiendo la siguiente pelicula: " + message;
+    } else {
+        messageElement.innerText = message;
+    }
 
-//     messageWrapper.appendChild(messageElement);
-//     chatBox.appendChild(messageWrapper);
+    messageWrapper.appendChild(messageElement);
+    chatBox.appendChild(messageWrapper);
 
-//     var spacer = document.createElement('div');
-//     spacer.classList.add('spacer');
-//     chatBox.appendChild(spacer);
-// }
+    var spacer = document.createElement('div');
+    spacer.classList.add('spacer');
+    chatBox.appendChild(spacer);
+}
 
 // Function to display loading message with animation
 var loadingInterval;
