@@ -67,7 +67,7 @@ def recommender(df, similarity_matrix, movie, n=30):
     pd.set_option('display.float_format', '{:.2f}'.format)
     recommendation = pd.DataFrame({
         'title': df['title'].iloc[movie_indices],
-        'similarity_score': scores
+        # 'similarity_score': scores
     })
 
     return recommendation
@@ -380,66 +380,49 @@ def recommender_surprise(data, movies, model, user_id, n=10):
 
     return top_movies
 
-def recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, userId, n = 10):
+def recommender_hybrid(ratings_sample, movies_soup, similarity_matrix, movies_with_genre, modelKNN, modelSVD, userId, n=10):
+    def get_user_unseen_movies(userId):
+        user_movies = ratings_sample[ratings_sample['userId'] == userId]['movieId']
+        unseen_movies = movies_soup[~movies_soup['id'].isin(user_movies)]
+        return unseen_movies
 
-    # Selecciona las peliculas que el usuario aun no vio:
-    user_movies = ratings_sample[ratings_sample['userId'] == userId]
-    user_movies = user_movies['movieId'].values.tolist()
+    def update_recommendation_scores(recommendation, recommendations_to_add):
+        if not recommendations_to_add.empty:
+            recommendations_to_add = recommendations_to_add.drop_duplicates(subset=['title'])
+            for index, row in recommendations_to_add.iterrows():
+                if row['title'] in recommendation.index:
+                    recommendation.at[row['title'], 'recommend'] += index
 
-    m = movies_soup.loc[~movies_soup['id'].isin(user_movies),'id'].unique()
+    # Comprueba si el usuario existe en los datos
+    if userId not in ratings_sample['userId'].unique():
+        return pd.DataFrame({'error': 'Usuario no encontrado'}, index=[0])
 
-    recommendation = pd.DataFrame(m, columns=['movieId'])
-    titulos = movies_soup[['id','title']].drop_duplicates(subset=['id'])
-    recommendation = recommendation.merge(titulos, left_on='movieId', right_on='id', how='left')
+    unseen_movies = get_user_unseen_movies(userId)
+    if unseen_movies.empty:
+        return pd.DataFrame({'error': 'No hay películas no vistas para el usuario'}, index=[0])
+
+    recommendation = pd.DataFrame(index=unseen_movies['title'])
     recommendation['recommend'] = 0
 
-    # Utilizando Content Based Recommender:
-    # Segun keywords genero, cast y director
-    p = recommender_movies(ratings_sample, movies_soup, similarity_matrix, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='similarity_score', ascending=True)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
+    # Content Based Recommender
+    content_based_rec = recommender_movies(ratings_sample, movies_soup, similarity_matrix, userId, n * 2)
+    update_recommendation_scores(recommendation, content_based_rec)
 
-    # Segun popularidad:
-    p = recommender_popularity(movies_with_genre, userId, n*2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='popularity', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
+    # Popularity Based Recommender
+    popularity_based_rec = recommender_popularity(movies_with_genre, userId, n * 2)
+    update_recommendation_scores(recommendation, popularity_based_rec)
 
-    # Model Based Recommender:
-    # KNN
-    p = recommender_surprise(ratings_sample, movies_with_genre, modelKNN, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='estimatedRating', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
+    # KNN Model Based Recommender
+    knn_rec = recommender_surprise(ratings_sample, movies_with_genre, modelKNN, userId, n * 2)
+    update_recommendation_scores(recommendation, knn_rec)
 
-    # SVD
-    p = recommender_surprise(ratings_sample, movies_with_genre, modelSVD, userId ,n * 2)
-    p = p.drop_duplicates(subset=['title'])
-    p = p.sort_values(by ='estimatedRating', ascending=False)
-    p.reset_index(drop=True, inplace=True)
-    # Le suma a la columna recommend el index de la pelicula para cada pelicula en p
-    for index, row in p.iterrows():
-        recommendation.loc[recommendation['title'] == row['title'], 'recommend'] += index
+    # SVD Model Based Recommender
+    svd_rec = recommender_surprise(ratings_sample, movies_with_genre, modelSVD, userId, n * 2)
+    update_recommendation_scores(recommendation, svd_rec)
 
-    recommendation = recommendation.sort_values(by ='recommend', ascending=False)
-
-    # Asegura que 'n' no sea mayor que la cantidad de películas disponibles
-    n = min(n, len(recommendation))
-
-    # Obtener las top 'n' recomendaciones de películas
-    recommendation = recommendation[:n]
-
-    return recommendation['title']
+    # Obtener las top 'n' recomendaciones
+    recommendation = recommendation.sort_values(by='recommend', ascending=False).head(n)
+    return recommendation.index.tolist()
 
 def final_user_recommendation(user_id):
     # Usando el Modelo Hibrido
