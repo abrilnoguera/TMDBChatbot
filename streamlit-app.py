@@ -14,7 +14,6 @@ movies_with_genre = pd.read_parquet('./input/movies_with_genre.parquet')
 ratings_sample = pd.read_parquet('./input/ratings_sample.parquet')
 ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_soup['id'])]
 ratings_sample = ratings_sample[ratings_sample['movieId'].isin(movies_with_genre['id'])]
-tags_matrix = sparse.load_npz('./input/tags_matrix.npz')
 similarity_matrix = sparse.load_npz('./input/similarity_matrix.npz')
 _, modelKNN = dump.load('Modelos/modelKNN')
 _, modelSVD = dump.load('Modelos/modelSVD')
